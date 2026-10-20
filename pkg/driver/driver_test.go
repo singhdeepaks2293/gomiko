@@ -56,7 +56,7 @@ func (MockConn2) SetTimeout(timeout uint8) {
 func TestDriver_FindDevicePrompt(t *testing.T) {
 
 	// [] valid input
-	testDriver := Driver{MockConn{}, "\n"}
+	testDriver := Driver{Connection: MockConn{}, Return: "\n"}
 	prompt, err := testDriver.FindDevicePrompt("\r?(.*)[#>]", ">|#")
 	if err != nil {
 		t.Fatal(err)
@@ -65,26 +65,20 @@ func TestDriver_FindDevicePrompt(t *testing.T) {
 		t.Error("find prompt failed: " + prompt)
 	}
 
-	// [] test timeout
-	testDriver = Driver{MockConn2{}, "\n"}
-	go func() {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Errorf("The code did not panic")
-			}
+	// [] test timeout on a device that never responds
+	oldTimeout := DefaultReadTimeout
+	DefaultReadTimeout = 100 * time.Millisecond
+	defer func() { DefaultReadTimeout = oldTimeout }()
 
-		}()
-
-		if _, err := testDriver.FindDevicePrompt("\r?(.*)[#>]", ">|#"); err != nil {
-			t.Fatal(err)
-		}
-
-	}()
+	testDriver = Driver{Connection: MockConn2{}, Return: "\n"}
+	if _, err := testDriver.FindDevicePrompt("\r?(.*)[#>]", ">|#"); err == nil {
+		t.Error("expected a timeout error for an unresponsive device")
+	}
 
 }
 
 func TestDriver_ReadUntil(t *testing.T) {
-	testDriver := Driver{MockConn{}, "\n"}
+	testDriver := Driver{Connection: MockConn{}, Return: "\n"}
 
 	out, _ := testDriver.ReadUntil("switch1")
 	if !strings.Contains(out, "Loged in as Admin!") && !strings.Contains(out, "switch1") {
@@ -93,7 +87,7 @@ func TestDriver_ReadUntil(t *testing.T) {
 }
 
 func TestDriver_SendCommand(t *testing.T) {
-	testDriver := Driver{MockConn{}, "\n"}
+	testDriver := Driver{Connection: MockConn{}, Return: "\n"}
 
 	result, _ := testDriver.SendCommand("show run", "switch1")
 	if !strings.Contains(result, "Loged in as Admin!") && !strings.Contains(result, "switch1") {
@@ -102,7 +96,7 @@ func TestDriver_SendCommand(t *testing.T) {
 }
 
 func TestDriver_SendCommandsSet(t *testing.T) {
-	testDriver := Driver{MockConn{}, "\n"}
+	testDriver := Driver{Connection: MockConn{}, Return: "\n"}
 
 	cmds := []string{"cmd1", "cmd2"}
 

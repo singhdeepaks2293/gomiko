@@ -94,3 +94,21 @@ func main() {
 
 }
 ```
+
+## increase the read timeout for slow devices or long commands:
+
+`TimeoutOption` only affects the SSH connect timeout. The time `SendCommand`
+waits for the device output defaults to 4 seconds; increase it globally for
+slow devices or long-running commands (for example `show run`):
+
+```go
+import (
+	"time"
+
+	"github.com/Ali-aqrabawi/gomiko/pkg/driver"
+)
+
+func main() {
+	driver.DefaultReadTimeout = 30 * time.Second
+}
+```
